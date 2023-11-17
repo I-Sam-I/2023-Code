@@ -6,12 +6,7 @@ package frc.robot;
 
 import frc.robot.Constants.ControllerConstants;
 import frc.robot.commands.ExampleCommand;
-import frc.robot.commands.GyroBalance;
-import frc.robot.commands.LimelightAim;
-import frc.robot.subsystems.Arm;
 import frc.robot.subsystems.ExampleSubsystem;
-import frc.robot.subsystems.LimelightManager;
-import frc.robot.subsystems.PneumaticGrabber;
 import frc.robot.subsystems.DriveSubsystem;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
@@ -35,59 +30,23 @@ public class RobotContainer {
   // The robot's subsystems and commands are defined here...
   private final ExampleSubsystem m_exampleSubsystem = new ExampleSubsystem();
 
-  private final PneumaticGrabber m_pneumaticGrabber = new PneumaticGrabber();
-
   private final DriveSubsystem m_robotDrive = new DriveSubsystem();
 
-  private final Arm m_arm = new Arm();
-
-  private final LimelightManager m_limelight = new LimelightManager();
-
-  ParallelCommandGroup limelightTest = new ParallelCommandGroup(new LimelightAim(m_limelight, m_robotDrive), new SequentialCommandGroup(new WaitCommand(1.5), m_limelight.limelightIsGood()));
-
-  //SequentialCommandGroup for auto-scoring mid cones
-  SequentialCommandGroup midConeScorer = new SequentialCommandGroup(
-      new InstantCommand(
-            () -> m_robotDrive.drive(-0.3, 0, 0, false, false),
-            m_robotDrive), 
-      new WaitCommand(0.1),
-      new InstantCommand(
-            () -> m_robotDrive.drive(0, 0, 0, false, false),
-            m_robotDrive), 
-      m_limelight.turnOnLED(),
-      m_arm.increaseArmAngle(),
-      new WaitCommand(0.5),
-      m_arm.increaseArmAngle(),
-      new WaitCommand(0.5),
-      m_arm.increaseArmAngle(),
-      new WaitCommand(0.5),
-      limelightTest,
-      m_robotDrive.stop(),
-      m_limelight.turnOffLED()
-  );
 
   // Replace with CommandPS4Controller or CommandJoystick if needed
   private final CommandXboxController m_navigatorController =
       new CommandXboxController(ControllerConstants.kNavigatorPort);
-
-  private final CommandXboxController m_operatorController =
-      new CommandXboxController(ControllerConstants.kOperatorPort);
       
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
-      CommandScheduler.getInstance().schedule(m_limelight.turnOffLED());
     m_robotDrive.setDefaultCommand(
         new RunCommand(
             () -> m_robotDrive.drive(
-                -MathUtil.applyDeadband(m_navigatorController.getLeftY(), ControllerConstants.kDriveDeadband),
-                -MathUtil.applyDeadband(m_navigatorController.getLeftX(), ControllerConstants.kDriveDeadband),
-                -MathUtil.applyDeadband(m_navigatorController.getRightX() * 0.4, ControllerConstants.kDriveDeadband),
+                -MathUtil.applyDeadband(m_navigatorController.getRightY(), ControllerConstants.kDriveDeadband),
+                -MathUtil.applyDeadband(m_navigatorController.getRightX(), ControllerConstants.kDriveDeadband),
+                -MathUtil.applyDeadband(m_navigatorController.getLeftX() * 0.4, ControllerConstants.kDriveDeadband),
                 true, true),
             m_robotDrive));
-
-    m_arm.setDefaultCommand(
-        new RunCommand(
-            () -> m_arm.manualIntake(m_operatorController.getLeftY()), m_arm));
 
     // Configure the trigger bindings
     configureBindings();
@@ -107,21 +66,10 @@ public class RobotContainer {
     new Trigger(m_exampleSubsystem::exampleCondition)
         .onTrue(new ExampleCommand(m_exampleSubsystem));
     
-    m_operatorController.y().onTrue(m_arm.set(0.5));
-    m_operatorController.y().onFalse(m_arm.set(0));
-    m_operatorController.a().onTrue(m_arm.set(-0.5));
-    m_operatorController.a().onFalse(m_arm.set(0));
-    m_operatorController.leftBumper().onTrue(m_arm.increaseArmAngle());
-    m_operatorController.rightBumper().onTrue(m_arm.decreaseArmAngle());
-    m_operatorController.back().onTrue(m_arm.resetArmAngle());
-    m_operatorController.x().onTrue(new GyroBalance(m_robotDrive.getGyro(), m_robotDrive));
-    m_operatorController.leftTrigger().onTrue(m_pneumaticGrabber.openGrabber());
-    m_operatorController.rightTrigger().onTrue(m_pneumaticGrabber.closeGrabber());
     
     m_navigatorController.y().onTrue(m_robotDrive.zeroHeading());
     m_navigatorController.rightTrigger().onTrue(m_robotDrive.setSpeedPercent(0.55));
     m_navigatorController.rightTrigger().onFalse(m_robotDrive.setSpeedPercent(0.4));
-    m_navigatorController.leftTrigger().onTrue(m_limelight.turnOffLED());
   }
 
   /** 
